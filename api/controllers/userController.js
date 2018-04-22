@@ -1,9 +1,7 @@
 require('dotenv').config();
 const knex = require('../../db/knex');
-const bcrypt = require('bcrypt');
-const jwt = require('jsonwebtoken');
-const moment = require('moment');
 const passport = require('passport');
+const auth = require('../helpers/authHelpers');
 
 // middlewares
 exports.doesUserExist = (req, res, next) => {
@@ -66,7 +64,7 @@ exports.isAuth = (req, res, next) => {
 exports.register = async (req, res) => {
   const { email, password } = req.body;
   if (email && password) {
-    const hash = await bcrypt.hashSync(password, 8); // fix the salt
+    const hash = await auth.hashPassword(password);
     // right lets insert the user..
     await knex('users')
       .insert({
@@ -76,18 +74,8 @@ exports.register = async (req, res) => {
       .returning('id')
       .then(id => {
         // lets give them a token
-        console.log('user: ', id);
-        const token = jwt.sign(
-          {
-            iss: 'shan',
-            sub: id[0],
-            exp: moment()
-              .add(1, 'days')
-              .unix(),
-            iat: moment().unix(),
-          },
-          process.env.KEY,
-        );
+        // console.log('user: ', id);
+        const token = auth.genTokenRegister(id);
         return res.status(200).json({
           token: token,
         });
@@ -109,7 +97,7 @@ exports.login = (req, res) => {
       .first()
       .returning('*')
       .then(user => {
-        const passwordHash = bcrypt.compareSync(password, user.password);
+        const passwordHash = auth.comparePasswords(password, user.password);
         if (user && passwordHash) {
           const userObj = {
             id: user.id,
@@ -117,17 +105,7 @@ exports.login = (req, res) => {
             // username: user.username,
             // role: 1, // admin
           };
-          const token = jwt.sign(
-            {
-              iss: 'shan',
-              sub: userObj,
-              exp: moment()
-                .add(1, 'days')
-                .unix(),
-              iat: moment().unix(),
-            },
-            process.env.KEY,
-          );
+          const token = auth.genToken(user);
           res.status(200).json({ token, user: userObj });
         } else {
           res.status(400).json({
