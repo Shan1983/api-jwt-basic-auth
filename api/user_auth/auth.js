@@ -48,6 +48,12 @@ const isAuth = (req, res, next) => {
     if (err) {
       res.status(500).json({ err });
     }
+    if (info) {
+      return res.status(401).json({
+        error: info.name,
+        message: info.message,
+      });
+    }
     if (!user) {
       return res.status(401).json({
         error: 'Unauthorized.',
@@ -102,18 +108,33 @@ router.post('/register', doesUserExist, async (req, res) => {
 
 router.post('/login', (req, res) => {
   const { email, password } = req.body;
+
   if (email && password) {
+    console.log('ready..');
     knex('users')
-      .where({ email })
+      .where({ email: email })
       .first()
+      .returning('*')
       .then(user => {
         const passwordHash = bcrypt.compareSync(password, user.password);
         if (user && passwordHash) {
           const userObj = {
             id: user.id,
             email: user.email,
+            // username: user.username,
+            // role: 1, // admin
           };
-          const token = jwt.sign({ id: user.id }, process.env.KEY);
+          const token = jwt.sign(
+            {
+              iss: 'shan',
+              sub: userObj,
+              exp: moment()
+                .add(1, 'days')
+                .unix(),
+              iat: moment().unix(),
+            },
+            process.env.KEY,
+          );
           res.status(200).json({ token, user: userObj });
         } else {
           res.status(400).json({
@@ -124,7 +145,7 @@ router.post('/login', (req, res) => {
       .catch(err => {
         res.status(500).json({
           error: 'Error loggin in.',
-          err,
+          message: 'User Not Found!',
         });
       });
   } else {
