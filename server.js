@@ -3,6 +3,8 @@ const express = require('express');
 const bodyParser = require('body-parser');
 const morgan = require('morgan');
 const cors = require('cors');
+const passport = require('passport');
+const strategy = require('./services/passport');
 
 // routes
 const auth = require('./api/user_auth/auth');
@@ -20,6 +22,8 @@ app.use(
     extended: true,
   }),
 );
+app.use(passport.initialize());
+passport.use(strategy);
 
 // routes setup
 app.use('/api/v1/auth', auth);
