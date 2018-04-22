@@ -1,16 +1,12 @@
 require('dotenv').config();
-const express = require('express');
 const knex = require('../../db/knex');
 const bcrypt = require('bcrypt');
 const jwt = require('jsonwebtoken');
 const moment = require('moment');
 const passport = require('passport');
 
-// set up the router
-const router = express.Router();
-
-// middleware for checking if user exists
-const doesUserExist = (req, res, next) => {
+// middlewares
+exports.doesUserExist = (req, res, next) => {
   console.log(req.body);
   // check if the req.body has stuffs
   const { email, password } = req.body;
@@ -43,7 +39,7 @@ const doesUserExist = (req, res, next) => {
   }
 };
 
-const isAuth = (req, res, next) => {
+exports.isAuth = (req, res, next) => {
   passport.authenticate('jwt', { session: false }, (err, user, info) => {
     if (err) {
       res.status(500).json({ err });
@@ -64,13 +60,10 @@ const isAuth = (req, res, next) => {
   })(req, res, next);
 };
 
-//test route
-router.get('/secret', isAuth, (req, res) => {
-  return res.status(200).send('super secret shit!');
-});
+// controllers
 
 // register
-router.post('/register', doesUserExist, async (req, res) => {
+exports.register = async (req, res) => {
   const { email, password } = req.body;
   if (email && password) {
     const hash = await bcrypt.hashSync(password, 8); // fix the salt
@@ -104,13 +97,13 @@ router.post('/register', doesUserExist, async (req, res) => {
         return res.status(400).json({ err });
       });
   }
-});
+};
 
-router.post('/login', (req, res) => {
+// login
+exports.login = (req, res) => {
   const { email, password } = req.body;
 
   if (email && password) {
-    console.log('ready..');
     knex('users')
       .where({ email: email })
       .first()
@@ -153,6 +146,4 @@ router.post('/login', (req, res) => {
       error: 'Both Email and Password Required.',
     });
   }
-});
-
-module.exports = router;
+};

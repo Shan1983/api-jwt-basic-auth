@@ -7,7 +7,10 @@ const passport = require('passport');
 const strategy = require('./services/passport');
 
 // routes
-const auth = require('./api/user_auth/auth');
+const userRoutes = require('./api/routes/user');
+
+// controllers
+const userController = require('./api/controllers/userController');
 
 // config
 const app = express();
@@ -26,7 +29,7 @@ app.use(passport.initialize());
 passport.use(strategy);
 
 // routes setup
-app.use('/api/v1/auth', auth);
+app.use('/api/v1/auth', userRoutes);
 
 // error handlers
 app.use((req, res, next) => {
